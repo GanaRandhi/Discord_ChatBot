@@ -6,7 +6,7 @@ config.json
 .ipynb_checkpoints
 *.log
 *.ipynb
-*.env
+.env
 *_env
 .DS_Store
 memory
