@@ -78,10 +78,11 @@ Chat History:
 '''
 
 
-columns = ['TranslatedRecipeName', 'TranslatedIngredients',
-           'PrepTimeInMins', 'CookTimeInMins', 'TotalTimeInMins', 'Servings',
-           'Cuisine', 'Course', 'Diet', 'TranslatedInstructions', 'URL',
-           'ComplexityLevel', 'MainIngredient']
+columns = ['Destination','Region','Country','Category',
+            'Approximate Annual Tourists','Currency',
+            'Majority Religion','Famous Foods','Language',
+            'Best Time to Visit','Cost of Living','Safety',
+            'Cultural Significance','Description']
 
 doc_columns = ['score', 'page_content',]
 
@@ -104,28 +105,26 @@ def convert_to_doc(row):
     Convert a row of the DataFrame to a Document object."""
     doc = Document(
         page_content=f'''
-# Recipe Name: {row['TranslatedRecipeName']}
-> URL: {row['URL']}
+# Destination Name: {row['Destination'], ',',row['Region'],',',row['Country']}
+>
 
-## Ingredients:
+## Basic Info:
 
-{row['TranslatedIngredients']}
+{row['Category'], ' with annual visits of ', row['Approximate Annual Tourists']}
 
-## Instructions:
+## Required Information for visiting:
 
-{row['TranslatedInstructions']}
+{row['Description']}
 ''',
         metadata={
-            'TranslatedRecipeName': row['TranslatedRecipeName'],
-            'PrepTimeInMins': row['PrepTimeInMins'],
-            'CookTimeInMins': row['CookTimeInMins'],
-            'TotalTimeInMins': row['TotalTimeInMins'],
-            'Servings': row['Servings'],
-            'Cuisine': row['Cuisine'],
-            'Course': row['Course'],
-            'Diet': row['Diet'],
-            'ComplexityLevel': row['ComplexityLevel'],
-            'MainIngredient': row['MainIngredient'],
+            'Currency': row['Currency'],
+            'Majority Religion': row['Majority Religion'],
+            'Famous Foods': row['Famous Foods'],
+            'Language': row['Language'],
+            'Cost of Living': row['Cost of Living'],
+            'Safety': row['Safety'],
+            'Cultural Significance': row['Cultural Significance'],
+            'Best Time to Visit': row['Best Time to Visit'],
         }
     )
 
@@ -146,14 +145,14 @@ def generate_metadata(search_query, o_client: ollama.Client):
     > this output will be used to filter the recipes.
 
     available metadata:
-    - 'Cuisine': string: ['Indian', 'Kerala Recipes', 'Oriya Recipes',
-        'Chinese', 'Konkan', 'Chettinad', 'Mexican', 'Kashmiri',
-        'South Indian Recipes', 'North Indian Recipes', 'Andhra',
-        'Gujarati Recipes', 'Continental',]
-    - 'Diet': string: ['Vegetarian', 'High Protein Vegetarian',
-        'Non Vegeterian', 'Eggetarian', 'Diabetic Friendly',
-        'Gluten Free', 'Sugar Free Diet', 'No Onion No Garlic (Sattvic)',
-        'Vegan', 'High Protein Non Vegetarian',]
+    - 'Destination': string: ['European', 'Italy', 'Spain',
+        'France', 'Austria', 'Gardens', 'Theme Parks', 'Coastal Cities',
+        'Mountain Ranges', 'Islands', 'Regions',
+        'Museums', 'Beaches',]
+    - 'Interests': string: ['historic significance', 'stunning seaside',
+        'rich cultural heritage', 'historic landmarks', 'fairy-tale destination',
+        'medieval architecture', 'magical park with entertainment', 'largest city',
+        'Gardens', 'beautiful riverside landscapes','Viking history and charming old streets']
     - 'ComplexityLevel': string: ['Medium', 'Hard']
 
     We can do exact match only.
@@ -301,7 +300,7 @@ def search(
     )
 
     searched_df = searched_df.groupby(
-        'TranslatedRecipeName').first().reset_index()
+        'Destination').first().reset_index()
     searched_df['rerank_score'] = searched_df['score']
 
     if flag_rerank_results:
@@ -316,18 +315,14 @@ def search(
 
     return searched_df.head(n_results).round(2)[
         [
-            'TranslatedRecipeName',
-            'page_content',
-            'PrepTimeInMins',
-            'CookTimeInMins',
-            'TotalTimeInMins',
-            'Servings',
-            'Cuisine',
-            'Diet',
-            'ComplexityLevel',
-            'MainIngredient',
-            'score',
-            'rerank_score'
+            'Destination',
+            'Region',
+            'Country',
+            'Category',
+            'Approximate Annual Tourists','Currency',
+            'Majority Religion','Famous Foods','Language',
+            'Best Time to Visit','Cost of Living','Safety',
+            'Cultural Significance','Description'
         ]
     ]
 
@@ -351,21 +346,21 @@ class GenAIBot(commands.Cog):
         self._chat_history = {}
 
         df = pd.read_csv(
-            '../IndianFoodDataset.csv',
+            '../destinations.csv',
         ).set_index('Srno')[columns]
 
         data = df[:].progress_apply(convert_to_doc, axis=1)
         self.vector_store_unchunked = Qdrant.from_documents(
             data,
             model_384,
-            collection_name="indian-food-metadata",
+            collection_name="euro-destinations-metadata",
             location=':memory:',
             # url="http://localhost:6333",
         )
 
         # self.vector_store_unchunked = Qdrant(
         #     client=QdrantClient(url='http://localhost:6333'),
-        #     collection_name="indian-food-metadata",
+        #     collection_name="euro-destinations-metadata",
         #     embeddings=model_384,
         # )
 
@@ -383,7 +378,7 @@ class GenAIBot(commands.Cog):
     @nextcord.slash_command(
         guild_ids=[config['guild_id']],
         description="Execute Command")
-    async def raginator(
+    async def ExploreYourInstincts(
             self,
             interaction: nextcord.Interaction,
             user_message: str

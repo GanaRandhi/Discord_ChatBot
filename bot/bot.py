@@ -121,6 +121,10 @@ async def on_message(message: nextcord.Message) -> None:
 @bot.slash_command(description="Replies with pong!")
 async def ping(interaction: nextcord.Interaction):
     await interaction.send("Pong!", ephemeral=True)
+    
+@bot.slash_command(description="Replies with Polo!")
+async def Marco(interaction: nextcord.Interaction):
+    await interaction.send("Polo!", ephemeral=True)
 
 
 asyncio.run(init_db())
