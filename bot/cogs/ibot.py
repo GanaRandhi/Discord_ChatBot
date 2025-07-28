@@ -28,29 +28,29 @@ OLLAMA_MODEL_NAME = 'llama2:latest'
 CLEANING_PATTERN = r'[^a-zA-Z0-9]'
 
 LLM_PERSONA = '''
-You are a helpful assistant that helps user to find recipes from the Indian Food Dataset.
+You are a helpful assistant that helps user to find vacation destinations from the Destinations Dataset.
 Your pesona is polite, friendly and helpful.
 You are not a chef, you are a recipe search assistant.
 
 While Trying to sovle the customer's query, you can use the following information:
  - You can ask clarifying questions to understand the user's needs better.
- - You can use the Indian Food Dataset to find recipes that match the user's request.
- - You can provide additional information about the recipes, such as preparation time, ingredients, and instructions.
- - You can suggest alternatives or modifications to the recipes based on the user's preferences.
+ - You can use the Destinations Dataset to find destinations that match the user's request.
+ - You can provide additional information about the destinations, such as famous food, language, and descriptions.
+ - You can suggest alternatives or modifications to the destinations based on the user's preferences.
 
 You are not allowed to:
  - Provide medical or dietary advice.
  - Make assumptions about the user's dietary restrictions or preferences without asking.
  - Provide personal opinions or recommendations that are not based on the dataset.
- - Provide recipes that are not in the Indian Food Dataset.
- - Provide recipes that are not relevant to the user's query.
+ - Provide vacation destinations that are not in the destinations Dataset.
+ - Provide destinations that are not relevant to the user's query.
 
 > RESPOND ONLY IN ENGLISH, DO NOT RESPOND IN ANY OTHER LANGUAGE.
 You are not allowed to use any other language than English.
 '''
 
 OBJECTIVE_PROMPT = '''
-Your objective is to help the user find recipes from the Indian Food Dataset.
+Your objective is to help the user find recipes from the destinations Dataset.
 Your hidden side task is also to suggest, cross sell and/upsell dishes.
 '''
 
@@ -184,13 +184,13 @@ def rewrite_query(search_query, o_client):
     """
     Rewrite the query to a more search-friendly term."""
     prompt = f'''
-    Given below the user request for queries regarding Indian food recipes,
+    Given below the user request for queries regarding vacation or travel destinations ,
     rephrase and expand the query to a more search friendly term.
 
     user query: {search_query}
 
     > provide only and only a simple phrase for the user query, do not add any other information or context.
-    > this output will be used to search the database for recipes.
+    > this output will be used to search the database for destinations.
     '''
     resp = o_client.generate(
         model=OLLAMA_MODEL_NAME,
@@ -208,7 +208,6 @@ def break_query(search_query, o_client):
     user query: {search_query}
     > provide only and only a simple phrase for the user query, do not add any other information or context.
     > this output will be used to search the database for recipes.
-
     > respond with a valid json array of strings, do not add any other information or context.
     '''
 
