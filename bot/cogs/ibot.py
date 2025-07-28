@@ -24,7 +24,7 @@ from tqdm.auto import tqdm
 tqdm.pandas(desc="Processing DataFrame")
 config = load_config()
 
-OLLAMA_MODEL_NAME = 'llama3.2:latest'
+OLLAMA_MODEL_NAME = 'llama2:latest'
 CLEANING_PATTERN = r'[^a-zA-Z0-9]'
 
 LLM_PERSONA = '''
@@ -377,7 +377,7 @@ class GenAIBot(commands.Cog):
     @nextcord.slash_command(
         guild_ids=[config['guild_id']],
         description="Execute Command")
-    async def ExploreYourInstincts(
+    async def explore_yourself(
             self,
             interaction: nextcord.Interaction,
             user_message: str
