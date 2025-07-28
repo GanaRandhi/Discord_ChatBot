@@ -123,7 +123,7 @@ async def ping(interaction: nextcord.Interaction):
     await interaction.send("Pong!", ephemeral=True)
     
 @bot.slash_command(description="Replies with Polo!")
-async def Marco(interaction: nextcord.Interaction):
+async def marco(interaction: nextcord.Interaction):
     await interaction.send("Polo!", ephemeral=True)
 
 

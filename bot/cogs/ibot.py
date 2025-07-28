@@ -151,8 +151,7 @@ def generate_metadata(search_query, o_client: ollama.Client):
         'Museums', 'Beaches',]
     - 'Interests': string: ['historic significance', 'stunning seaside',
         'rich cultural heritage', 'historic landmarks', 'fairy-tale destination',
-        'medieval architecture', 'magical park with entertainment', 'largest city',
-        'Gardens', 'beautiful riverside landscapes','Viking history and charming old streets']
+        'medieval architecture', 'magical park with entertainment', 'largest city',]
     - 'ComplexityLevel': string: ['Medium', 'Hard']
 
     We can do exact match only.
