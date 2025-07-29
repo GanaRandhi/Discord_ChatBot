@@ -24,7 +24,7 @@ from tqdm.auto import tqdm
 tqdm.pandas(desc="Processing DataFrame")
 config = load_config()
 
-OLLAMA_MODEL_NAME = 'llama2:latest'
+OLLAMA_MODEL_NAME = 'llama3.2:latest'
 CLEANING_PATTERN = r'[^a-zA-Z0-9]'
 
 LLM_PERSONA = '''
