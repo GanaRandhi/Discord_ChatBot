@@ -16,3 +16,4 @@ models
 runs
 wandb
 ppo_stonky.zip
+my_queries.txt
