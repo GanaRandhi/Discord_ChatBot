@@ -9,12 +9,23 @@ python -m pip install -r requirements.txt
  *Also install if any missing*
 ## Getting started
 please update your config files <br>
+### To Run *Ollama*
 "ibot" to run llama2 <br>
 ```
     "cogs": [
         "ibot"
     ]
 ```
+Open your CMD and type 
+```cmd
+ollama
+```
+(after installing Ollama setup)<br>
+then type
+``` CMD
+ollama run llama2
+```
+### To Run *Google AI Gemini*
 "ibotGemini" to run Google AI <br>
 ```
     "cogs": [
