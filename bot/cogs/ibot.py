@@ -24,7 +24,7 @@ from tqdm.auto import tqdm
 tqdm.pandas(desc="Processing DataFrame")
 config = load_config()
 
-OLLAMA_MODEL_NAME = 'llama3.2:latest'
+OLLAMA_MODEL_NAME = 'llama2:latest'
 CLEANING_PATTERN = r'[^a-zA-Z0-9]'
 
 LLM_PERSONA = '''
@@ -399,6 +399,64 @@ def as_cards(df):
     df_str = df.astype(str)
     return df.apply(lambda x: x.to_markdown(), axis=1).to_list()
 
+# --- NEW FUNCTION FOR CHUNKING MESSAGES ---
+def chunk_message(text: str, max_length: int = 2000) -> List[str]:
+    """
+    Splits a string into chunks of max_length, attempting to break at natural
+    points like newlines or sentence endings to avoid cutting words.
+    """
+    if len(text) <= max_length:
+        return [text]
+
+    chunks = []
+    current_chunk = ""
+    lines = text.split('\n') # Split by newlines first
+
+    for line in lines:
+        if len(current_chunk) + len(line) + 1 <= max_length: # +1 for newline
+            current_chunk += line + '\n'
+        else:
+            # If adding the whole line exceeds limit, try to split the line itself
+            if current_chunk: # Add current_chunk if not empty
+                chunks.append(current_chunk.strip())
+                current_chunk = ""
+
+            # Process the long line
+            words = line.split(' ')
+            temp_line_chunk = ""
+            for word in words:
+                if len(temp_line_chunk) + len(word) + 1 <= max_length: # +1 for space
+                    temp_line_chunk += word + ' '
+                else:
+                    if temp_line_chunk:
+                        chunks.append(temp_line_chunk.strip())
+                    temp_line_chunk = word + ' ' # Start new chunk with the current word
+
+            if temp_line_chunk: # Add any remaining part of the line
+                current_chunk += temp_line_chunk.strip() + '\n' # Add to current_chunk for next iteration
+
+    if current_chunk: # Add any remaining content
+        chunks.append(current_chunk.strip())
+
+    # Final pass to ensure no chunk exceeds max_length, splitting aggressively if needed
+    final_chunks = []
+    for chunk in chunks:
+        while len(chunk) > max_length:
+            split_point = chunk.rfind('\n', 0, max_length) # Try newline
+            if split_point == -1:
+                split_point = chunk.rfind('.', 0, max_length) # Try sentence end
+            if split_point == -1:
+                split_point = chunk.rfind(' ', 0, max_length) # Try space
+            if split_point == -1: # No natural break, force split
+                split_point = max_length
+
+            final_chunks.append(chunk[:split_point])
+            chunk = chunk[split_point:].strip()
+        if chunk:
+            final_chunks.append(chunk)
+
+    return final_chunks
+# --- END NEW FUNCTION ---
 
 class GenAIBot(commands.Cog):
     """A simple Discord bot cog that captures all messages and provides a
@@ -502,13 +560,15 @@ class GenAIBot(commands.Cog):
             o_client=ollama_client,
             vector_store=self.vector_store_unchunked,
             reranking_model=model_768,
-            n_results=5,
+            n_results=10,
             similarity_threshold=0.1,
             flag_rewrite_query=True,
             flag_ai_metadata=False,
             flag_break_query=True,
             flag_rerank_results=True,
         )
+        
+        print(results)
 
         context = '\n---\n'.join(as_cards(results))
         print(f"Context passed to LLM:\n{context}") # Debugging line
@@ -536,6 +596,35 @@ class GenAIBot(commands.Cog):
                 ),
                 stream=False,
             ).response
+            
+            # --- MODIFIED FIX FOR 400 Bad Request (error code: 50035) ---
+            # Instead of truncating, chunk the message and send multiple parts
+            MAX_DISCORD_MESSAGE_LENGTH = 2000
+            message_chunks = chunk_message(llm_response, MAX_DISCORD_MESSAGE_LENGTH)
+
+            # Send the first chunk as the initial followup response
+            if message_chunks:
+                await interaction.followup.send(
+                    content=message_chunks[0],
+                    # delete_after=300 # Consider if you want all chunks to disappear after 300s
+                )
+                # Send subsequent chunks as new messages in the same channel
+                for i, chunk in enumerate(message_chunks[1:]):
+                    await interaction.channel.send(
+                        content=chunk,
+                        # delete_after=300 # Apply to all if desired
+                    )
+                # If you want to delete all messages after 300 seconds, you'll need to store message objects
+                # and then delete them. For simplicity, I've commented out delete_after for subsequent messages.
+                # If only the first message needs to be ephemeral/deleted, keep it as is.
+            else:
+                await interaction.followup.send(
+                    "The LLM generated an empty response.",
+                    ephemeral=True
+                )
+
+            # --- END MODIFIED FIX ---
+
         except Exception as e:
             llm_response = f"An error occurred while generating a response: {e}"
             print(f"Error during LLM generation: {e}")
@@ -550,6 +639,26 @@ class GenAIBot(commands.Cog):
             content=llm_response,
             delete_after=300
         )
+    
+    @nextcord.slash_command(
+        guild_ids=[config['guild_id']],
+        description="Starts a new search by clearing your chat history."
+    )
+    async def stop_explore(
+        self,
+        interaction: nextcord.Interaction
+    ):
+        """Clears the user's chat history to start a new search."""
+        await interaction.response.defer(ephemeral=True) # Defer and make it ephemeral
+
+        user_id = interaction.user.id
+        if user_id in self._chat_history:
+            del self._chat_history[user_id]
+            await interaction.followup.send("Your search history has been cleared. You can now start a new search!", ephemeral=True)
+            print(f"Chat history for user {user_id} cleared.")
+        else:
+            await interaction.followup.send("You don't have an active search history to clear.", ephemeral=True)
+            print(f"User {user_id} tried to clear history, but none existed.")
 
 
 def setup(bot):
